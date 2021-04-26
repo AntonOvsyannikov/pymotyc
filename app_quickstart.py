@@ -69,7 +69,7 @@ async def main():
     await Warehouse.empolyees.save(Employee(name='Frosya Taburetkina', age=21))
 
     # Let find one by age to modify, for this we need to inject _id field to responce model.
-    vasya = await Warehouse.empolyees.find_one({'age': 42}, force_default_id=True)
+    vasya = await Warehouse.empolyees.find_one({'age': 42}, inject_default_id=True)
 
     # vasya's type is Employee now (inferred from Collection[] annotation), enjoy ide type hints!
     assert vasya.name == 'Vasya Pupkin'

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TypeVar
 
 from bson import ObjectId
@@ -13,6 +14,10 @@ class MotycModel(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         underscore_attrs_are_private = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat(),
+            ObjectId: lambda oid: str(oid),
+        }
 
     _bound_collection: Collection = None
 
@@ -25,5 +30,4 @@ class MotycModel(BaseModel):
 
     async def save(self: T) -> T:
         assert self._bound_collection is not None, "No bound collection found, use Database.collection.save() first."
-        return await self._bound_collection.save(self)
-
+        return await self._bound_collection.save(self, mode='update')

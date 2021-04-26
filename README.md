@@ -3,18 +3,43 @@
 Statically typed asynchronous MongoDB collections with Pydantic models and Motor engine.
 
 Motyc stands for MOngodb TYped Collections, and also is diminutive for the word 'motocycle' in Russian, 
-which is with motor of course!
+which is known to have a Motor of course!
 
 ## Key features
 
+- Daclarative MongoDB databases with statically typed collections (by Pydantic models). 
 
-One can use only necessary features with existing Pydantic models or all features at once using 
-MotycModel (which is no more than well configured BaseModel). 
+<details>
+  <summary>Example</summary>
 
-- Statically typed MongoDB collection with find and save capabiilities.
-- Trivial query builder to have only relation between model's fields and queries, in which they are used,
+```
+class Employee(BaseModel):
+    name: str
+    age: int
+
+engine = pymotyc.Engine()
+
+@engine.database
+class Warehouse:
+    empolyees: pymotyc.Collection[Employee]
+  ```
+  
+</details>
+
+- Statically typed MongoDB collections with `find`, `find_one`, `save` and `update` capabiilities. 
+
+- Ability to use your model's fields as keys in ordinary MongoDB queries to have relation between model's fields and queries, in which they are used.
 as well as advaced query builder with logical expresisons over models fields.
 - Flexible identity management during save operation, wherer...
+- .
+
+
+One can use original Pydantic models, or inherit them from `MotycModel` which is no more than well configured BaseModel) 
+to have features like default identity management with id field and methods directly on model instance to save it to bound collection 
+
+
+Also, it's possible to fall back to raw Motor collections and cursor management, 
+but use utility API to build queries and parse returned documents.
   
 
 ## Installation
@@ -102,3 +127,7 @@ id management capabilities, see next step!
 ### Raw queries and iterators
 ### Refactorable queries
 
+Discriminated Unionsi s killing feature both of pydantic and pymotic, so we can keep 
+different models in one collection and pymotyc will be able to parse it to correct class instances.
+
+See different REST API designs.

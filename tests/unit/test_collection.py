@@ -60,11 +60,11 @@ class Database:
 async def test_parse_document():
     Engine.create(motor=MockMotor(), databases=[Database])
 
-    model = Database.foo._parse_document({'foo': 1, 'bar': 'baz'})
+    model = Database.foo.parse_document({'foo': 1, 'bar': 'baz'})
     assert isinstance(model, Model)
     assert model == Model(foo=1, bar='baz')
 
-    model = Database.bar._parse_document({'foo': 1, 'bar': 'baz'})
+    model = Database.bar.parse_document({'foo': 1, 'bar': 'baz'})
     assert isinstance(model, dict)
     assert model == {'foo': 1, 'bar': 'baz'}
 

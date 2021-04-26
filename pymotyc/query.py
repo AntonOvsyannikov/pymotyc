@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Any, Mapping, cast, Type, Union
 
 from pydantic import BaseModel
@@ -45,8 +46,22 @@ class MotycQuery(ABC):
     def build_mongo_query(query: Union[dict, 'MotycQuery']) -> dict:
         """ Builds MongoDB query from MotycQuery or dict, where keys can be MotycFields.
 
-        :param query: Query, built with MoticQuery builder or dict with raw MongoDB query,
-            where keys can be not only string, but also MotycFields (typically injected).
+        :param query: One of: Raw MongoDB query, advanced query or MotycQuery.
+            - Raw MongoDB query, find or update or whatever.
+            - Advanced query, like raw, but MotycFields (injected into models with inject_motyc_fields,
+                see Engine.bind) can be used as keys, and BaseModel-s instances can be used as values,
+                being converted into dicts.
+            - MotycQuery, built with query builder, from MotycFields injected into models
+                using operations like +, -, & etc. Motyc field even be injected are not recognized
+                by IDE, so M function should be used to cast.
+
+                Example:
+                ... await engine.bind(..., inject_motyc_fields=True) ...
+                class Employee(BaseModel):
+                    name: str
+                    age: int
+                build_mongo_query((M(Employee.name)=="Vasya")&(M(Employee.age)>=42))
+
         :return: Raw MongoDB query.
         """
 
@@ -55,17 +70,22 @@ class MotycQuery(ABC):
 
         assert isinstance(query, dict)
 
+        query = deepcopy(query)
+
+        # todo immutably
         def mod_requrs(query: Union[dict, Any]) -> dict:
             if not isinstance(query, dict): return query
             result = {}
             for key, val in query.items():
                 if isinstance(key, MotycField):
-                    key = key.model_field.alias
+                    key = key.alias
 
                 if isinstance(val, list):
                     val = [mod_requrs(item) for item in val]
                 elif isinstance(val, dict):
                     val = mod_requrs(val)
+                elif isinstance(val, BaseModel):
+                    val = val.dict(by_alias=True)
 
                 result[key] = val
             return result
@@ -91,10 +111,10 @@ class MotycQueryLeafCompare(MotycQueryLeaf):
         self.literal = literal
 
     def __str__(self):
-        return f"{self.motyc_field.model_field.alias}{compare_ops_repr[self.op]}{self.literal}"
+        return f"{self.motyc_field.alias}{compare_ops_repr[self.op]}{self.literal}"
 
     def to_mongo_query(self) -> MongoQuery:
-        return {self.motyc_field.model_field.alias: {compare_ops_mongo[self.op]: self.literal}}
+        return {self.motyc_field.alias: {compare_ops_mongo[self.op]: self.literal}}
 
 
 # ----------------------------------------------------
@@ -107,10 +127,10 @@ class MotycQueryLeafRegex(MotycQueryLeaf):
         self.options = options
 
     def __str__(self):
-        return f"{self.motyc_field.model_field.alias}~=/{self.pattern}/{self.options}"
+        return f"{self.motyc_field.alias}~=/{self.pattern}/{self.options}"
 
     def to_mongo_query(self) -> MongoQuery:
-        return {self.motyc_field.model_field.alias: {"$regex": self.pattern, "$options": self.options}}
+        return {self.motyc_field.alias: {"$regex": self.pattern, "$options": self.options}}
 
 
 # ====================================================
@@ -131,9 +151,9 @@ class MotycQueryNode(MotycQuery):
 # ====================================================
 
 
-class MotycField():
-    def __init__(self, model_field: ModelField):
-        self.model_field = model_field
+class MotycField:
+    def __init__(self, model_field_or_alias: Union[ModelField, str]):
+        self.model_field_or_alias = model_field_or_alias
 
     def __eq__(self, other):
         return MotycQueryLeafCompare(self, '__eq__', other)
@@ -153,11 +173,15 @@ class MotycField():
     def __ne__(self, other):
         return MotycQueryLeafCompare(self, '__ne__', other)
 
+    def __getattr__(self, item):
+        if item.startswith('__'): raise AttributeError(item)
+        return MotycField(self.alias + '.' + item)
+
     def regex(self, pattern: str, options: str = ""):
         return MotycQueryLeafRegex(self, pattern, options)
 
     def __hash__(self):
-        return hash(self.model_field.alias)
+        return hash(self.alias)
 
     @staticmethod
     def _inject_for_model(model: Type[BaseModel]):
@@ -165,6 +189,12 @@ class MotycField():
         for field_name, field in model.__fields__.items():
             if isinstance(field, ModelField):
                 setattr(model, field_name, MotycField(field))
+
+    @property
+    def alias(self) -> str:
+        return (self.model_field_or_alias.alias
+                if isinstance(self.model_field_or_alias, ModelField) else
+                self.model_field_or_alias)
 
 
 # noinspection PyPep8Naming
