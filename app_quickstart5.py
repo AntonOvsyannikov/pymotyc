@@ -18,7 +18,7 @@ engine = pymotyc.Engine()
 
 @engine.database
 class Warehouse:
-    empolyees: pymotyc.Collection[Employee]
+    employees: pymotyc.Collection[Employee]
 
 
 async def main():
@@ -26,24 +26,24 @@ async def main():
 
     await engine.bind(motor=motor, inject_motyc_fields=True)
 
-    await Warehouse.empolyees.collection.drop()
+    await Warehouse.employees.collection.drop()
 
-    await Warehouse.empolyees.save(Employee(name='Vasya Pupkin', age=42))
-    await Warehouse.empolyees.save(Employee(name='Frosya Taburetkina', age=21))
+    await Warehouse.employees.save(Employee(name='Vasya Pupkin', age=42))
+    await Warehouse.employees.save(Employee(name='Frosya Taburetkina', age=21))
 
-    vasya = await Warehouse.empolyees.find_one({'age': 42}, inject_default_id=True)
+    vasya = await Warehouse.employees.find_one({'age': 42}, inject_default_id=True)
 
     assert vasya.name == 'Vasya Pupkin'
 
     assert hasattr(vasya, '_id')
 
     vasya.age = 43
-    await Warehouse.empolyees.save(vasya)
+    await Warehouse.employees.save(vasya)
 
-    employee = await Warehouse.empolyees.find_one({Employee.age: {"$eq": 21}})
+    employee = await Warehouse.employees.find_one({Employee.age: {"$eq": 21}})
     assert employee.name == "Frosya Taburetkina"
 
-    employees = await Warehouse.empolyees.find(M(Employee.name).regex("Vasya") & (M(Employee.age) < 50))
+    employees = await Warehouse.employees.find(M(Employee.name).regex("Vasya") & (M(Employee.age) < 50))
     assert employees == [Employee(name='Vasya Pupkin', age=43)]
 
     print("Everything fine!")

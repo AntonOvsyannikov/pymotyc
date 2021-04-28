@@ -1,94 +1,121 @@
-""" Simple Pymotic application, which demonstrate key features:
-    - statically typed collections with Pydantic Models in declarative database class,
-    - saving Model to collection,
-    - ordinary MongoDB queries to find docs and parse them to models,
-    - _id field injection to have binding with doc in database for saving changes,
-    - refactorable queries, where Model fields can be used as keys in MongoDB queries to have relation
-        between Models and queries, in whith they are used,
-    - simple Query builder for operations like >=, and, regex.
+""" Basic PyMotyc application.
 
-For more features like
-    - several collection in database,
-    - different Models in same collection,
-    - custom id management,
-please see app_quickstart2.py
+This will show basic usage of PyMotyc:
+    - declaration of pydantic model, to be used to statically type MongoDB collection.
+    - declaration of the database, with statically typed collection,
+    - creation of AsyncIOMotorClient and pymotyc.Engine instances and binding all things together,
+    - storing model instances into database,
+    - retrieving single and multiple model instances from the collection by id or with query,
+    - modifying model instance by saving or document in-place,
+    - deleting document from the database.
+
+We have no field in the model to represent identity in this particular scenario, so Mongo's document
+_id field of ObjectId type will be used as identity. To have the _id field in the returned model
+instance we have to use inject_default_id = True option in correspondent methods.
+This is just one strategy of identity management, supported by PyMotyc, see other examples for more.
+
+To run this example it is necessary to have MongoDB up and running. You can use `./run.sh mongo`
+to start MongoDB in Docker container on local host 127.0.0.1 on default port 27017.
+If you have other settings please customize AsyncIOMotorClient creation.
+
 """
 import asyncio
 
-from pydantic import BaseModel
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel
 
 import pymotyc
-from pymotyc import M
 
 
-# ----------------------------------------------------
 # Create Pydantic model.
-
 class Employee(BaseModel):
     name: str
     age: int
 
 
-# ----------------------------------------------------
-# Create PyMotyc engine instance.
-
-engine = pymotyc.Engine()
-
-
-# ----------------------------------------------------
-# Create database class with collections, annotated by Collection[] Generic.
-# Put it under control of Motyc engine with @engine.database decorator.
-
-@engine.database
+# Create database class with collection, annotated by Collection[] Generic, typed by Pydantic model.
 class Warehouse:
-    empolyees: pymotyc.Collection[Employee]
+    employees: pymotyc.Collection[Employee]
 
 
 async def main():
-    # ----------------------------------------------------
-    # Create Motor Client. Provide mongo_host, port etc there.
-    # You can use ./run.sh mongo to start MongoDB in Docker container locally with this settings.
+    # Create Motor Client.
     motor = AsyncIOMotorClient("mongodb://127.0.0.1:27017")
 
-    # ----------------------------------------------------
-    # Bind PyMotyc Engine instance to the Motor instance.
-    # Use inject_motyc_fields=True to safely modify Employee model to support refactorable queries.
-    await engine.bind(motor=motor, inject_motyc_fields=True)
+    # Create PyMotyc engine instance, bind it to the Motor instance and provide the database to manage.
+    await pymotyc.Engine().bind(motor=motor, databases=[Warehouse])
 
-    # ----------------------------------------------------
-    # Drop collection through the link to original Motor collection to reproduce results.
-    await Warehouse.empolyees.collection.drop()
+    # Drop collection just because this is example.
+    # We have no custom indexes in the collection, otherwise they would have to be recreated here.
+    await Warehouse.employees.collection.drop()
 
-    # ====================================================
-    # Use statically typed collections!
-    # ====================================================
+    # ===== Use statically typed collections! =====
 
-    # Let add several Employee to the collection.
-    await Warehouse.empolyees.save(Employee(name='Vasya Pupkin', age=42))
-    await Warehouse.empolyees.save(Employee(name='Frosya Taburetkina', age=21))
+    # Let's add first Employee to collection.
+    vasya = await Warehouse.employees.save(Employee(name='Vasya Pupkin', age=42), inject_default_id=True)
 
-    # Let find one by age to modify, for this we need to inject _id field to responce model.
-    vasya = await Warehouse.empolyees.find_one({'age': 42}, inject_default_id=True)
+    # Please note, that IDE correctly understand the type of returned model already, let's check it in run-time.
+    assert isinstance(vasya, Employee)
 
-    # vasya's type is Employee now (inferred from Collection[] annotation), enjoy ide type hints!
-    assert vasya.name == 'Vasya Pupkin'
-
-    # This is identity field, injected by PyMotyc, even if there is no in the Model.
+    # Even there is no _id field in the model, the _id field of ObjectId type, which represents
+    # document id provided by MongoDB, is injected thanks to inject_default_id=True option.
     assert hasattr(vasya, '_id')
+    vasya_id = getattr(vasya, '_id')
+    assert isinstance(vasya_id, ObjectId)
 
-    # We can modify and save model now, thanks to _id field injected by PyMotyc.
-    vasya.age = 43
-    await Warehouse.empolyees.save(vasya)
+    # Let's add some more Employees.
+    await Warehouse.employees.save(Employee(name='Frosya Taburetkina', age=22))
+    await Warehouse.employees.save(Employee(name='Dusya Ivanova', age=20))
 
-    # Let query database. We can use Employee fields as a key in queries, thanks to PyMotyc.
-    employee = await Warehouse.empolyees.find_one({Employee.age: {"$eq": 21}})
-    assert employee.name == "Frosya Taburetkina"
+    # Let's explore our collection now...
 
-    # We can also use simple query builder, built in PyMotyc.
-    # M helper is used just to cast injected into Model fields to MotycField to satisfy typechecker.
-    employees = await Warehouse.empolyees.find(M(Employee.name).regex("Vasya") & (M(Employee.age) < 50))
-    assert employees == [Employee(name='Vasya Pupkin', age=43)]
+    # ...as a whole
+    employees = await Warehouse.employees.find(sort={'age': 1})
+    assert employees == [
+        Employee(name='Dusya Ivanova', age=20),
+        Employee(name='Frosya Taburetkina', age=22),
+        Employee(name='Vasya Pupkin', age=42)
+    ]
+
+    # ...or with query
+    employees = await Warehouse.employees.find({'$and': [{'age': {'$gt': 40}}, {'name': {'$regex': 'Vasya'}}]})
+    assert employees == [Employee(name='Vasya Pupkin', age=42)]
+
+    # Let's get back our first Employee by it's identity.
+    vasya = await Warehouse.employees.find_one(_id=vasya_id, inject_default_id=True)
+
+    # Let's explore field's values, please note IDE hints for fields names.
+    assert vasya.name == 'Vasya Pupkin'
+    assert vasya.age == 42
+
+    # If our application is single threaded and have no need of concurrency control
+    # or we can ignore race conditions for some reason, the model instance can be
+    # manipulated directly and saved back to the collection easily.
+    # Due to injected _id engine knows, which document to update.
+    # This approach is brilliant, cause it is migration-safe: even if Employee model
+    # will be changed in future, all we have to do is to provide default values for new fields,
+    # so they will be set to defaults while getting model form collection
+    # and updated in the database while saving.
+    vasya.age += 1
+    vasya = await Warehouse.employees.save(vasya)
+    assert vasya.age == 43
+
+    # Alternatively we can use MongoDB update query to update the document in-place.
+    # This should be considered carefully in migrations context, so defaults in model
+    # to correspond Mongo's defaults for emply document fields.
+    vasya = await Warehouse.employees.update_one(_id=vasya_id, update={'$inc': {'age': 1}})
+    assert vasya.age == 44
+
+    # Finally let's remove someone from collection.
+    await Warehouse.employees.delete_one(_id=vasya_id)
+
+    # And check if is it done.
+    employees = await Warehouse.employees.find(sort={'age': 1})
+    assert employees == [
+        Employee(name='Dusya Ivanova', age=20),
+        Employee(name='Frosya Taburetkina', age=22),
+    ]
 
     print("Everything fine!")
 

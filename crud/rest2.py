@@ -1,9 +1,12 @@
 """
 Simple REST API for CRUD operations, when identity is Mongo's ObjectId and is detached,
-means _id field is not a part of the pymotic-managed model and will be injected with inject_default_id.
+means _id field is not a part of the PyMotyc-managed model and will be injected with inject_default_id.
 
-Here we use tuple as Out model and do conversion of ObjectId to str by hands.
+To keep things simple we use tuple as Out model and do conversion of ObjectId to str by hands.
+
 EmployeeOut = Tuple[str, Employee]
+
+Some BaseModel model can be used instead, see rest3.py for tips and tricks with model manipulations.
 
 Also this scenario shows usage of unique indexes for non-identity fields.
 """

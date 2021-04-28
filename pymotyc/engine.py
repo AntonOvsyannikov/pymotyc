@@ -1,4 +1,4 @@
-from typing import Optional, List, Sequence, Union
+from typing import Optional, List, Sequence, Union, Iterable
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing_extensions import Literal
@@ -16,17 +16,20 @@ class Engine:
     async def bind(
             self, *,
             motor: AsyncIOMotorClient,
+            databases: Iterable = (),
             already_bound: Literal['skip', 'assert'] = 'assert',
             inject_motyc_fields=False,
     ):
         """ Binds Motyc engine and all collected databases/collections with the Motor instance.
         See _bind_database for details.
+        :param databases: Databases to bind, alternatively one can use Engine.database decorator.
         :param motor: Motor instance to bind to.
         :param already_bound: What to do, if database already bound.
         :param inject_motyc_fields: Inject MotycFields to all involved Pydantic models,
             to fields be accessible via Model.<field_name> to be used in advanced queries.
         """
         self.motor = motor
+        self.databases += databases
         for db in self.databases:
 
             if already_bound == 'assert':

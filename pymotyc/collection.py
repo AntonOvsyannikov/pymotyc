@@ -173,7 +173,7 @@ class Collection(Generic[T]):
                 mongo_query,
                 {'$set': document}
             )
-            if not result.modified_count: raise NotFound(mongo_query)
+            if not result.matched_count: raise NotFound(mongo_query)
 
         else:
             assert False, f"Mode {mode} is not supported."

@@ -2,8 +2,8 @@
 
 Statically typed asynchronous MongoDB collections with Pydantic models and Motor engine.
 
-Motyc stands for MOngodb TYped Collections, and also is diminutive for the word 'motocycle' in Russian, 
-which is known to have a Motor of course!
+Motyc stands for **MO**ngodb **TY**ped **C**ollections, and also is diminutive for the word 'motocycle' in Russian, 
+which of course also has a motor!
 
 ## Key features
 
@@ -21,7 +21,7 @@ engine = pymotyc.Engine()
 
 @engine.database
 class Warehouse:
-    empolyees: pymotyc.Collection[Employee]
+    employees: pymotyc.Collection[Employee]
   ```
   
 </details>
@@ -74,7 +74,7 @@ Create database class with collections, annotated by Collection[] Generic.
 
 ```
 class Warehouse:
-    empolyees: pymotyc.Collection[Employee]
+    employees: pymotyc.Collection[Employee]
 ```
 
 Create Motor Client.
@@ -98,20 +98,20 @@ Now you can access raw Motor collection and db through correspondent attributes 
 There we will just drop collection to reproduce results of the app runs.
 
 ```
-    await Warehouse.empolyees.collection.drop()
+    await Warehouse.employees.collection.drop()
 ```
 
 Now you can use statically typed collections!
 
 ```
-    await Warehouse.empolyees.save(Employee(name='Vasya Pupkin', age=42))
+    await Warehouse.employees.save(Employee(name='Vasya Pupkin', age=42))
 
-    vasya = await Warehouse.empolyees.find_one(age=42)
+    vasya = await Warehouse.employees.find_one(age=42)
 
     # vasya type is Employee now, enjoy ide type hints!
     assert vasya.name == 'Vasya Pupkin'
 
-    employees = await Warehouse.empolyees.find(age=42)
+    employees = await Warehouse.employees.find(age=42)
     assert employees == [Employee(name='Vasya Pupkin', age=42)]
 ```
 
@@ -127,7 +127,7 @@ id management capabilities, see next step!
 ### Raw queries and iterators
 ### Refactorable queries
 
-Discriminated Unionsi s killing feature both of pydantic and pymotic, so we can keep 
+Discriminated Unionsi s killing feature both of pydantic and PyMotyc, so we can keep 
 different models in one collection and pymotyc will be able to parse it to correct class instances.
 
 See different REST API designs.

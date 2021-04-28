@@ -1,6 +1,6 @@
 """
-Simple REST API for CRUD operations, when identity is managed completely on client side,
-so resource id is part of the model and id management of any kind on database or pymotic side is not necessary.
+Simple REST API for CRUD operations, when identity is managed completely on client side, so 
+resource id is part of the model and id management of any kind on database or PyMotyc side is not necessary.
 
 Here we use POST to create resource and PUT only to modify known one.
 """
