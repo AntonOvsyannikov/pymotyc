@@ -185,5 +185,3 @@ if __name__ == "__main__":
 
         response = cli.patch('/employees/dusya?inc_age=2')
         assert response.status_code == 404
-
-        print('Everything fine!')

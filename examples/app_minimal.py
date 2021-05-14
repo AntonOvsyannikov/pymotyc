@@ -22,7 +22,8 @@ async def main():
 
     await Warehouse.employees.collection.drop()
 
-    await Warehouse.employees.save(Employee(name='Vasya Pupkin', age=42), inject_default_id=True)
+    vasya = await Warehouse.employees.save(Employee(name='Vasya Pupkin', age=42))
+    assert isinstance(vasya, Employee)
 
     employees = await Warehouse.employees.find()
     assert employees == [Employee(name='Vasya Pupkin', age=42)]

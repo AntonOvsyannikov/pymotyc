@@ -37,7 +37,7 @@ class MockMotor:
 
 
 async def test_binding():
-    Engine.create(motor=MockMotor(), databases=[SomeDatabase])
+    await Engine().bind(motor=MockMotor(), databases=[SomeDatabase])
 
     assert SomeDatabase.collection_foo.db.name == 'some_database'
 
@@ -54,19 +54,15 @@ async def test_binding():
 
 class Database:
     foo: Collection[Model]
-    bar: Collection[dict]
 
 
 async def test_parse_document():
-    Engine.create(motor=MockMotor(), databases=[Database])
+    await Engine().bind(motor=MockMotor(), databases=[Database])
 
     model = Database.foo.parse_document({'foo': 1, 'bar': 'baz'})
     assert isinstance(model, Model)
     assert model == Model(foo=1, bar='baz')
 
-    model = Database.bar.parse_document({'foo': 1, 'bar': 'baz'})
-    assert isinstance(model, dict)
-    assert model == {'foo': 1, 'bar': 'baz'}
 
 
 def test_check_type_get_basemodels():

@@ -47,6 +47,10 @@ class Engine:
         self.databases.append(db)
         return db
 
+    # @staticmethod
+    # def get_database(db) -> AgnosticDatabase:
+    #     assert hasattr(db, '__pymotyc__bound__'), "Database is not managed by PyMotyc."
+
     @classmethod
     async def create(cls, db_or_dbs: Union[type, Sequence[type]], **kwargs):
         self = cls()

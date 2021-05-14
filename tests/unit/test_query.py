@@ -2,11 +2,11 @@ from typing import cast
 
 from pydantic import Field
 
-from pymotyc.model import MotycModel
+from pymotyc.model import MotycModel, WithInjected
 from pymotyc.query import MotycQuery, MotycField
 
 
-class Model(MotycModel):
+class Model(WithInjected):
     foo: int
     bar: int = Field(None, alias='bar_alias')
 

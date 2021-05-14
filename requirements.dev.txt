@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest~=6.2
+pytest-pycharm==0.7.0
+fastapi==0.65.1

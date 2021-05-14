@@ -117,8 +117,6 @@ async def main():
         Employee(name='Frosya Taburetkina', age=22),
     ]
 
-    print("Everything fine!")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
