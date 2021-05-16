@@ -3,3 +3,6 @@
 **/__pycache__
 venv/
 !.dockerignore
+build
+dist
+pymotyc.egg-info

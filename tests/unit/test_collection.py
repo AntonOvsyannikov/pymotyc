@@ -36,6 +36,7 @@ class MockMotor:
         return MockMotorDB(item)
 
 
+@pytest.mark.asyncio
 async def test_binding():
     await Engine().bind(motor=MockMotor(), databases=[SomeDatabase])
 
@@ -56,6 +57,7 @@ class Database:
     foo: Collection[Model]
 
 
+@pytest.mark.asyncio
 async def test_parse_document():
     await Engine().bind(motor=MockMotor(), databases=[Database])
 

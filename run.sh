@@ -1,3 +1,5 @@
+#!/bin/sh
+
 case "$1" in
 
   mongo)
@@ -11,8 +13,19 @@ case "$1" in
     docker network rm pymotyc
     ;;
 
-  tests)
-    pytest $2
+  build)
+    rm -rf build dist
+    python3 -m build
+    ;;
+
+  upload_test)
+    source .tokens.sh
+    python3 -m twine upload -u __token__ -p ${PYPI_TOKEN_TEST} --repository testpypi dist/*
+    ;;
+
+  upload)
+    source .tokens.sh
+    python3 -m twine upload -u __token__ -p ${PYPI_TOKEN} dist/*
     ;;
 
 esac
